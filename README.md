@@ -12,6 +12,16 @@ The package assumes that data elements are organized by a 2-dimensional index: a
 Data is then presented (by default) such that all data of the same type share a row and data of the same source share a column (although it is possible to transpose the resulting table).
 The conceptual difference between a source and a type is that all data of the same type (i.e., rows of the resulting table) is formatted the same way.
 
+For example, the table below lists some statistics about penguins from [PalmerPenguins](https://allisonhorst.github.io/palmerpenguins/articles/intro.html).
+Each column (`source`) contains information about a different species of penguin. Rows within a column represent different types of data.
+Each row (`type`) contains data of the same type and is formatted the same way, but the values can differ across species.
+
+|                | Adelie                   | Chinstrap | Gentoo |
+|----------------|--------------------------|-----------|--------|
+| Flipper length | 190mm                    | 196mm     | 217mm  |
+| Body mass      | 3706g                    | 3733g     | 5092g  |
+| Islands        | Torgerson, Biscoe, Dream | Dream     | Biscoe |
+
 ## Alternative packages
 
 There are several other packages for generating LaTeX tables from Julia objects.
