@@ -1,6 +1,7 @@
 name = "LaTeXCarpenter"
 uuid = "d1239a56-209c-476f-afff-9040135ddd4e"
 authors = ["Ruairidh South rsouth@princeton.edu"]
+version = "0.0.0"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

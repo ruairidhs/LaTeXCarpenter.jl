@@ -5,6 +5,7 @@ This package creates LaTeX tables from structured Julia objects.
 It is difficult to balance ease-of-use with flexibility when writing a table-printing package.
 This is demonstrated by the existence of several similar packages in the Julia ecosystem, each offering a different level of generality.
 I find the level of generality offered by this package useful for a variety of applications, from regression results to less structured statistics.
+Please see the documentation for examples of the tables this package can generate.
 
 ## Design
 
@@ -24,7 +25,7 @@ Each row (`type`) contains data of the same type and is formatted the same way, 
 
 ## Alternative packages
 
-There are several other packages for generating LaTeX tables from Julia objects.
+There are several other useful packages for generating LaTeX tables from Julia objects.
 
 - [`PrettyTables.jl`](https://github.com/ronisbr/PrettyTables.jl) can print matrices with multiple formatting options and multiple output formats. 
 - [`LaTeXTabulars.jl`](https://github.com/tpapp/LaTeXTabulars.jl) is a thin wrapper which allows you to essentially write LaTeX `tabular` environment code in Julia.
