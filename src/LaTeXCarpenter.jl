@@ -1,7 +1,8 @@
 module LaTeXCarpenter
 
 using Format,
-      StatsAPI
+      StatsAPI,
+      StatsModels
 
 export print_latex_table, Column, Row
 

@@ -9,7 +9,7 @@ struct RegressionData
     stats::Dict{Symbol, Any}
 end
 
-RegressionData(rr::RegressionModel) = RegressionData(make_coefficients(rr),
+RegressionData(rr::StatsAPI.RegressionModel) = RegressionData(make_coefficients(rr),
                                                      make_fixed_effects(rr),
                                                      make_stats(rr),
                                                     )
@@ -47,8 +47,8 @@ function make_fixed_effects(rr)
     end
     return fes
 end
-extract_fe(term::FunctionTerm) = term.args[1].sym
-extract_fe(term::InteractionTerm) = extract_fe.(term.terms)
+extract_fe(term::StatsModels.FunctionTerm) = term.args[1].sym
+extract_fe(term::StatsModels.InteractionTerm) = extract_fe.(term.terms)
 
 r2_within(rr) = rr.r2_within
 function make_stats(rr)
