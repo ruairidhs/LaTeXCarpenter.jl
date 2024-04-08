@@ -1,6 +1,7 @@
 module LaTeXCarpenter
 
-using Format
+using Format,
+      StatsAPI
 
 export print_latex_table, Column, Row
 
@@ -16,6 +17,7 @@ struct Row{K, F}
 end
 
 include("default_formatting.jl")
+include("regression_tables.jl")
 
 """
     print_latex_table([filepath::AbstractString | String | io::IO], rows, columns; kwargs...)
@@ -87,7 +89,11 @@ function generate_body_row(row, columns)
             if !validate_formatted(formatted)
                 throw(ArgumentError("Formatting $row and $col resulted in non AbstractString element"))
             end
-            return collect(formatted) # transform to vector
+            if isa(formatted, AbstractString)
+                return [formatted]
+            else
+                return collect(formatted) # transform to vector
+            end
         end
     end
     return [[[row.label]]; row_entries]

@@ -5,4 +5,7 @@ default_fmt(x::AbstractString) = x
 default_fmt(::Nothing) = ""
 default_fmt(x) = string(x)
 
+fmt_coef(x) = (format("\${:.3f}\$", x[1]), format("(\${:.3f}\$)", x[2]))
+fmt_fe(x) = x ? "Yes" : "No"
+
 Row(key, label) = Row(key, string(label), default_fmt)
