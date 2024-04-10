@@ -2,7 +2,8 @@ module LaTeXCarpenter
 
 using Format,
       StatsAPI,
-      StatsModels
+      StatsModels,
+      FixedEffectModels
 
 export print_latex_table, Column, Row
 

@@ -96,8 +96,8 @@ end
 latex_clean(s::Symbol) = latex_clean(string(s))
 latex_clean(s::AbstractString) = replace(s, "_" => "\\_")
 
-function print_regression_table(regs; labels=nothing)
+function print_regression_table(io, regs; labels=nothing, kwargs...)
     columns = [Column("($i)", RegressionData(rr)) for (i, rr) in enumerate(regs)]
     rows, midrules = generate_rows(regs; labels=labels)
-    print_latex_table("regression_table.tex", rows, columns, midrules=midrules)
+    print_latex_table(io, rows, columns, midrules=midrules, kwargs...)
 end
