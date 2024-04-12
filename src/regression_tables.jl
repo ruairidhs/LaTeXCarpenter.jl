@@ -13,6 +13,10 @@ RegressionData(rr::StatsAPI.RegressionModel) = RegressionData(make_coefficients(
                                                      make_fixed_effects(rr),
                                                      make_stats(rr),
                                                     )
+function RegressionData(rr::StatsModels.TableRegressionModel{QuantileRegressions.QRegModel, M}) where {M}
+    RegressionData(make_coefficients(rr), Set{Any}(), Dict{Symbol, Any}())
+end
+
 
 function Base.getindex(D::RegressionData, key::Pair{Symbol, T}) where T
     key_sym, ind = key
@@ -36,26 +40,29 @@ end
 
 make_coefficients(rr) = Dict(n => (coef = coef(rr)[idx], stderror = stderror(rr)[idx]) for (idx, n) in enumerate(coefnames(rr)))
 
-function make_fixed_effects(rr)
+make_fixed_effects(rr::RegressionModel) = Set{Any}()
+function make_fixed_effects(rr::FixedEffectModel)
     fes = Set{Any}()
-    if has_fe(rr)
-        preds = rr.formula.rhs
-        for el in preds
-            !has_fe(el) && continue
-            push!(fes, extract_fe(el))
-        end
+    preds = rr.formula.rhs
+    isa(preds, Term) && return fes
+    for el in preds
+        !has_fe(el) && continue
+        push!(fes, extract_fe(el))
     end
     return fes
 end
 extract_fe(term::StatsModels.FunctionTerm) = term.args[1].sym
 extract_fe(term::StatsModels.InteractionTerm) = extract_fe.(term.terms)
 
-r2_within(rr) = rr.r2_within
-function make_stats(rr)
-    statfuncs = [adjr2, nobs, r2, responsename]
-    has_fe(rr) && push!(statfuncs, r2_within)
+#r2_within(rr::FixedEffectModel) = rr.r2_within
+function base_make_stats(rr)
+    statfuncs = [nobs, r2, responsename]
+    #has_fe(rr) && push!(statfuncs, r2_within)
     Dict(Symbol(f) => f(rr) for f in statfuncs)
 end
+
+make_stats(rr::RegressionModel) = base_make_stats(rr)
+make_stats(rr::FixedEffectModel) = push!(base_make_stats(rr), :r2_within => rr.r2_within)
 
 function label_stat(stat::Symbol)
     labs = Dict(:adjr2 => raw"Adjusted $R^2$",
@@ -96,8 +103,13 @@ end
 latex_clean(s::Symbol) = latex_clean(string(s))
 latex_clean(s::AbstractString) = replace(s, "_" => "\\_")
 
-function print_regression_table(io, regs; labels=nothing, kwargs...)
-    columns = [Column("($i)", RegressionData(rr)) for (i, rr) in enumerate(regs)]
+function print_regression_table(io, regs; colnames=["($i)" for i in eachindex(regs)], labels=nothing, kwargs...)
+    (; rows, columns, midrules) = get_regression_table_format(regs; colnames=colnames, labels=labels)
+    print_latex_table(io, rows, columns; midrules=midrules, kwargs...)
+end
+
+function get_regression_table_format(regs; colnames=["($i)" for i in eachindex(regs)], labels=nothing)
+    columns = [Column(n, RegressionData(rr)) for (n, rr) in zip(colnames, regs)]
     rows, midrules = generate_rows(regs; labels=labels)
-    print_latex_table(io, rows, columns, midrules=midrules, kwargs...)
+    return (rows=rows, columns=columns, midrules=midrules)
 end

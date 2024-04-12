@@ -3,9 +3,10 @@ module LaTeXCarpenter
 using Format,
       StatsAPI,
       StatsModels,
-      FixedEffectModels
+      FixedEffectModels,
+      QuantileRegressions
 
-export print_latex_table, Column, Row
+export print_latex_table, print_regression_table, Column, Row
 
 struct Column{D}
     label::String # used to print
@@ -49,9 +50,12 @@ function print_latex_table end
 function print_latex_table(::Type{String}, rows, columns;
         rowheader=nothing, transpose=false, midrules = [],
         title_align = "c", multicol_spec = nothing,
-        align_spec = make_default_align_spec(columns),
+        align_spec = nothing,
     )
     body = generate_body(rows, columns, rowheader, transpose)
+    if isnothing(align_spec)
+        align_spec = make_default_align_spec(size(body, 2) - 1)
+    end
     midrules = expand_midrules(body, midrules)
     body = expand_body(body, title_align)
     composed_body = compose_body(body, midrules, multicol_spec)
@@ -73,7 +77,6 @@ function print_latex_table(file::AbstractString, rows, columns; kwargs...)
 end
 
 ## Implementation:
-
 ## generate and expand the body matrix
 function generate_body(rows, columns, rowheader, transpose)
     body = mapreduce(r -> permutedims(generate_body_row(r, columns)), vcat, rows)
@@ -149,7 +152,7 @@ function compose_body(body_matrix, midrules, multicol_spec)
     midrule_offset = 1 # for the title row
     combined = vec(mapslices(combine_row, body_matrix; dims=2)) # mapslices produces N×1 matrix not vector
     if !isnothing(multicol_spec)
-        multicol_header = generate_multicol_header(body_matrix, multicol_spec)
+        multicol_header = generate_multicol_header(size(body_matrix, 2), multicol_spec)
         combined = vcat(multicol_header, combined)
         midrule_offset += 1
     end
@@ -170,8 +173,7 @@ end
 
 make_multicol(start, finish, title) = "\\multicolumn{$(finish-start+1)}{c}{$title}"
 make_multicol_line(start, finish, title) = "\\cmidrule(rl){$(start+1)-$(finish+1)} "
-function generate_multicol_header(body, spec)
-    ncols = size(body, 2)
+function generate_multicol_header(ncols, spec)
     header = ""
     spec_loc = 1
     col_loc = 0
@@ -198,7 +200,7 @@ function generate_multicol_header(body, spec)
     return header
 end
 
-make_default_align_spec(columns) = "l" * repeat("r", length(columns))
+make_default_align_spec(n) = "l" * repeat("r", n)
 
 function generate_header(alignspec)
     return [raw"\begin{tabular}{" * alignspec * "}",
