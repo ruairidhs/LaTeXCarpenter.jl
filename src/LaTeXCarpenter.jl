@@ -2,9 +2,7 @@ module LaTeXCarpenter
 
 using Format,
       StatsAPI,
-      StatsModels,
-      FixedEffectModels,
-      QuantileRegressions
+      StatsModels
 
 export print_latex_table, print_regression_table, Column, Row
 
@@ -87,7 +85,7 @@ end
 
 function generate_body_row(row, columns)
     row_entries = map(columns) do col
-        if row.key ∉ keys(col.data)
+        if !haskey(col.data, row.key)
             return [""]
         else
             formatted = row.formatter(col.data[row.key])

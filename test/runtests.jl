@@ -4,6 +4,8 @@ using Test
 using DataFrames
 using FixedEffectModels
 using Statistics
+using GLM
+using QuantileRegressions
 
 GENERATE = false # generate new regression test data
 
@@ -16,12 +18,12 @@ y = @. 0.2 + 3 * x + x ^ 2 + fe1 - 1 + 2 * fe2 + ϵ
 df = DataFrame(x = x, x2 = x .^ 2, y = y, state = ifelse.(fe1 .== 1, "NY", "NJ"), year = ifelse.(fe2 .== 1, "2000", "2010"))
 
 # Regression model test
-frms = [@formula(y ~ x),
-        @formula(y ~ x + x^2),
-        @formula(y ~ x + x^2 + fe(state)),
-        @formula(y ~ x + x^2 + fe(state) + fe(year)),
+regs = [lm(@formula(y ~ x), df),
+        lm(@formula(y ~ x + x^2), df),
+        qreg(@formula(y ~ x), df, 0.5),
+        reg(df, @formula(y ~ x + x^2 + fe(state))),
+        reg(df, @formula(y ~ x + x^2 + fe(state) + fe(year))),
        ]
-regs = [reg(df, f) for f in frms]
 labels = Dict("x" => raw"$x$", "x ^ 2" => raw"$x^2$", :state => "State", :year => "Year", "(Intercept)" => "Constant")
 
 # Dataframes test
@@ -35,7 +37,9 @@ if GENERATE
     print_latex_table("testdata/df_midrules.tex", rows, columns; midrules=[2])
     print_latex_table("testdata/df_multicol.tex", rows, columns; multicol_spec=[(1, 2, "X"), (3, 3, "Y")], transpose=true)
     print_latex_table("testdata/df_rowheader.tex", rows, columns; rowheader = "Mean")
-    print_regression_table("testdata/reg_base.tex", regs; labels=labels)
+    print_regression_table("testdata/reg_base.tex", regs)
+    print_regression_table("testdata/reg_small.tex", regs[1:3])
+    print_regression_table("testdata/reg_labels.tex", regs; labels=labels)
 end
 
 @testset "LaTeXCarpenter.jl" verbose=true begin
@@ -47,6 +51,8 @@ end
         @test print_latex_table(String, rows, columns; rowheader = "Mean") == read("testdata/df_rowheader.tex", String)
     end
     @testset "FixedEffectModels.jl" verbose=true begin
-        @test print_regression_table(String, regs; labels=labels) == read("testdata/reg_base.tex", String)
+        @test print_regression_table(String, regs) == read("testdata/reg_base.tex", String)
+        @test print_regression_table(String, regs[1:3]) == read("testdata/reg_small.tex", String)
+        @test print_regression_table(String, regs; labels=labels) == read("testdata/reg_labels.tex", String)
     end
 end

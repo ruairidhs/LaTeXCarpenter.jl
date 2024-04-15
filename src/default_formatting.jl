@@ -6,6 +6,21 @@ default_fmt(::Nothing) = ""
 default_fmt(x) = string(x)
 
 fmt_coef(x) = (format("{:.3f}", x[1]), format("({:.3f})", x[2]))
-fmt_fe(x) = x ? "Yes" : "No"
+fmt_fe(x) = x ? "Yes" : ""
 
 Row(key, label) = Row(key, string(label), default_fmt)
+
+"""
+    latex_clean(x)
+
+Escape special characters in LaTeX.
+"""
+function latex_clean(x)
+    special = ['&', '%', '$', '#', '_', '{', '}']
+    swaps = [s => "\\$s" for s in special]
+    push!(swaps, '~' => raw"\textasciitilde ",
+          '^' => raw"\textasciicircum ",
+          '\\' => raw"\textbackslash ",
+         )
+    return replace(x, swaps...)
+end

@@ -1,115 +1,138 @@
-"""
-    RegressionData
-
-A standardized, light-weight container for regression results and specifications.
-"""
-struct RegressionData
-    coefs::Dict{String, @NamedTuple{coef::Float64, stderror::Float64}}
-    fes::Set{Any}
-    stats::Dict{Symbol, Any}
+struct RegressionColumnData{T<:RegressionModel}
+    model::T
 end
 
-RegressionData(rr::StatsAPI.RegressionModel) = RegressionData(make_coefficients(rr),
-                                                     make_fixed_effects(rr),
-                                                     make_stats(rr),
-                                                    )
-function RegressionData(rr::StatsModels.TableRegressionModel{QuantileRegressions.QRegModel, M}) where {M}
-    RegressionData(make_coefficients(rr), Set{Any}(), Dict{Symbol, Any}())
+struct CoefKey{T}
+    idx::T
 end
 
+struct FEKey{T}
+    idx::T
+end
 
-function Base.getindex(D::RegressionData, key::Pair{Symbol, T}) where T
-    key_sym, ind = key
-    if key_sym == :coef
-        return D.coefs[ind]
-    elseif key_sym == :fe
-        return ind ∈ D.fes
-    elseif key_sym == :stat
-        return D.stats[ind]
+struct StatKey{T <: Function}
+    idx::T
+end
+
+struct NullKey end
+
+# Base.haskey
+Base.haskey(rr::RegressionColumnData, key::CoefKey) = key.idx ∈ coefnames(rr.model)
+function Base.haskey(rr::RegressionColumnData, key::StatKey)
+    applicable(key.idx, rr.model)
+end
+function Base.haskey(rr::RegressionColumnData{T}, key::StatKey) where {T <: StatsModels.TableRegressionModel}
+    applicable(key.idx, rr.model.model)
+end
+Base.haskey(rr::RegressionColumnData, ::FEKey) = true
+Base.haskey(rr::RegressionColumnData, ::NullKey) = false
+
+# Base.getindex
+function Base.getindex(rr::RegressionColumnData, key::CoefKey)
+    loc = findfirst(==(key.idx), coefnames(rr.model))
+    isnothing(loc) && throw(KeyError(key))
+    return (StatsAPI.coef(rr.model)[loc], StatsAPI.stderror(rr.model)[loc])
+end
+
+function Base.getindex(rr::RegressionColumnData, key::StatKey)
+    if applicable(key.idx, rr.model)
+        return key.idx(rr.model)
     else
         throw(KeyError(key))
     end
 end
 
-function Base.keys(D::RegressionData)
-    [[(:coef => k) for k in keys(D.coefs)];
-     [(:fe => k) for k in D.fes];
-     [(:stat => k) for k in keys(D.stats)]
-    ]
-end
-
-make_coefficients(rr) = Dict(n => (coef = coef(rr)[idx], stderror = stderror(rr)[idx]) for (idx, n) in enumerate(coefnames(rr)))
-
-make_fixed_effects(rr::RegressionModel) = Set{Any}()
-function make_fixed_effects(rr::FixedEffectModel)
-    fes = Set{Any}()
-    preds = rr.formula.rhs
-    isa(preds, Term) && return fes
-    for el in preds
-        !has_fe(el) && continue
-        push!(fes, extract_fe(el))
+function Base.getindex(rr::RegressionColumnData{T}, key::StatKey) where {T <: StatsModels.TableRegressionModel}
+    if applicable(key.idx, rr.model.model)
+        return key.idx(rr.model.model)
+    else
+        throw(KeyError(key))
     end
-    return fes
-end
-extract_fe(term::StatsModels.FunctionTerm) = term.args[1].sym
-extract_fe(term::StatsModels.InteractionTerm) = extract_fe.(term.terms)
-
-#r2_within(rr::FixedEffectModel) = rr.r2_within
-function base_make_stats(rr)
-    statfuncs = [nobs, r2, responsename]
-    #has_fe(rr) && push!(statfuncs, r2_within)
-    Dict(Symbol(f) => f(rr) for f in statfuncs)
 end
 
-make_stats(rr::RegressionModel) = base_make_stats(rr)
-make_stats(rr::FixedEffectModel) = push!(base_make_stats(rr), :r2_within => rr.r2_within)
+get_fes(::RegressionModel) = Any[]
 
-function label_stat(stat::Symbol)
-    labs = Dict(:adjr2 => raw"Adjusted $R^2$",
-                :nobs => raw"$N$",
-                :r2 => raw"$R^2$",
-                :responsename => "Dependent variable",
-                :r2_within => raw"Within-$R^2$",
-               )
-    return labs[stat]
-end
+Base.getindex(rr::RegressionColumnData, key::FEKey) = false
 
-## Row generation given a set of regression results
-function generate_rows(regs; labels=nothing)
-    if isnothing(labels)
-        labels = Dict()
+##
+function apply_labels(labels, row)
+    if haskey(labels, row)
+        return labels[row]
+    else
+        return latex_clean(string(row))
     end
-    coefs = [Row(:coef => c, apply_label(c, labels), fmt_coef) for c in get_all_coefs(regs)]
-    fes = [Row(:fe => fe, apply_label(fe, labels), fmt_fe) for fe in get_all_fes(regs)]
-    stats = [Row(:stat => s, label_stat(s), default_fmt) for s in get_all_stats(regs)]
-    return (rows = [coefs; 
-                    Row(nothing, "\\emph{Fixed effects}"); fes; 
-                    Row(nothing, "\\emph{Statistics}"); stats
-                   ], midrules = [length(coefs), length(coefs) + length(fes) + 1])
 end
 
-get_all_coefs(regs) = unique(mapreduce(coefnames, vcat, regs))
-get_all_fes(regs) = unique(mapreduce(make_fixed_effects, union, regs))
-function get_all_stats(regs)
-    stats = [:nobs, :r2]
-    any(has_fe, regs) && push!(stats, :r2_within)
+function apply_labels(labels, row::Tuple)
+    return intersperse(apply_labels.(Ref(labels), row), " × ")
 end
 
-apply_label(x::Tuple, labels) = intersperse(apply_label.(x, Ref(labels)), " × ")
-function apply_label(x, labels)
-    x ∉ keys(labels) && return latex_clean(x)
-    return labels[x]
+get_all_coefnames(regs) = mapreduce(coefnames, union, regs)
+function get_coefficient_rows(coefs, labels)
+    return [Row(CoefKey(c), apply_labels(labels, c), fmt_coef) for c in coefs]
 end
-latex_clean(s::Symbol) = latex_clean(string(s))
-latex_clean(s::AbstractString) = replace(s, "_" => "\\_")
 
-function print_regression_table(io, regs; colnames=["($i)" for i in eachindex(regs)], labels=nothing, kwargs...)
-    (; rows, columns, midrules) = get_regression_table_format(regs; colnames=colnames, labels=labels)
+function get_stats_rows(stats, labels)
+    return [Row(NullKey(), raw"\emph{Statistics}");
+            [Row(StatKey(s), apply_labels(labels, s)) for s in stats]
+           ]
+end
+
+function get_fe_rows(fes, labels)
+    return [Row(NullKey(), raw"\emph{Fixed Effects}");
+            [Row(FEKey(fe), apply_labels(labels, fe), fmt_fe) for fe in fes]
+           ]
+end
+
+## Building the table
+default_stats() = [StatsAPI.nobs, StatsAPI.r2]
+default_colnames(regs) = ["($i)" for i in eachindex(regs)]
+function add_stats_labels(labels)
+    default_stat_labels = Dict{Any, String}(StatsAPI.nobs => raw"$N$", StatsAPI.r2 => raw"$R^2$")
+    if isempty(labels)
+        return default_stat_labels
+    else
+        # user choice will override
+        return push!(default_stat_labels, labels...)
+    end
+end
+
+function get_regression_table_format(regs; 
+        labels = Dict(),
+        coefs=get_all_coefnames(regs), 
+        stats=default_stats(), 
+        fes = mapreduce(get_fes, union, regs),
+        colnames=default_colnames(regs), 
+    )
+    labels = add_stats_labels(labels)
+
+    coef_rows = get_coefficient_rows(coefs, labels)
+    stat_rows = get_stats_rows(stats, labels)
+    if !isempty(fes)
+        fe_rows = get_fe_rows(fes, labels)
+        rows = [coef_rows; fe_rows; stat_rows]
+        midrules = [length(coef_rows), sum(length, (coef_rows, fe_rows))]
+    else
+        rows = [coef_rows; stat_rows]
+        midrules = [length(coef_rows)]
+    end
+
+    columns = [Column(n, RegressionColumnData(r)) for (n, r) in zip(colnames, regs)]
+
+    return (rows=rows,
+        columns=columns,
+        midrules=midrules
+    )
+end
+
+function print_regression_table(io, regs;
+        labels = Dict(),
+        coefs=get_all_coefnames(regs), 
+        stats=default_stats(), 
+        fes = mapreduce(get_fes, union, regs),
+        colnames=default_colnames(regs), 
+        kwargs...
+    )
+    (; rows, columns, midrules) = get_regression_table_format(regs; labels=labels, coefs=coefs, stats=stats, fes=fes, colnames=colnames)
     print_latex_table(io, rows, columns; midrules=midrules, kwargs...)
-end
-
-function get_regression_table_format(regs; colnames=["($i)" for i in eachindex(regs)], labels=nothing)
-    columns = [Column(n, RegressionData(rr)) for (n, rr) in zip(colnames, regs)]
-    rows, midrules = generate_rows(regs; labels=labels)
-    return (rows=rows, columns=columns, midrules=midrules)
 end
