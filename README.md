@@ -17,13 +17,7 @@ For example, the table below lists some statistics about penguins from [PalmerPe
 Each column (`source`) contains information about a different species of penguin. Rows within a column represent different types of data.
 Each row (`type`) contains data of the same type and is formatted the same way, but the values can differ across species.
 
-|                | Adelie                   | Chinstrap | Gentoo |
-|----------------|--------------------------|-----------|--------|
-| Flipper length | 190mm                    | 196mm     | 217mm  |
-| Body mass      | 3706g                    | 3733g     | 5092g  |
-| Islands        | Torgerson, Biscoe, Dream | Dream     | Biscoe |
-
-![An example table](./docs/src/assets/penguins3.png)
+<img src="docs/src/assets/penguins3.png" width=50% height=50%>
 
 ## Alternative packages
 
