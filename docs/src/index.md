@@ -38,8 +38,7 @@ columns = [Column(row.species, row) for row in eachrow(stats)]
 rows = [Row(:bill_length_mm_mean, "Bill length (mm)"),
         Row(:body_mass_g_mean, "Body mass (g)"),
        ]
-tab = print_latex_table(String, rows, columns)
-print(tab)
+print_latex_table(rows, columns)
 ```
 ![An image of the compiled LaTeX table](./assets/penguins1.png)
 
@@ -70,8 +69,7 @@ using Format
 rows = [Row(:bill_length_mm_mean, "Bill length", "{:.2f}mm"),
         Row(:body_mass_g_mean, "Body mass", x -> format("{:.2f}kg", x / 1000)),
        ]
-tab = print_latex_table(String, rows, columns)
-print(tab)
+print_latex_table(rows, columns)
 ```
 ![An image of the compiled LaTeX table](./assets/penguins2.png)
 
@@ -81,8 +79,7 @@ rows = [Row(:bill_length_mm_mean, "Bill length", "{:.2f}mm"),
         Row(:body_mass_g_mean, "Body mass", x -> format("{:.2f}kg", x / 1000)),
         Row(:island_Ref_unique, "Islands", identity),
        ]
-tab = print_latex_table(String, rows, columns; midrules=[2])
-print(tab)
+print_latex_table(rows, columns; midrules=[2])
 ```
 ![An image of the compiled LaTeX table](./assets/penguins3.png)
 
@@ -98,8 +95,7 @@ columns = [Column(row.species, row) for row in eachrow(stats)]
 rows = [Row(:bill_length_mm_make_stat, "Bill length (mm)", fmt_stat),
         Row(:body_mass_g_make_stat, "Body mass (g)", fmt_stat),
        ]
-tab = print_latex_table(String, rows, columns; suffix = "\\scriptsize Standard errors in parentheses.")
-print(tab)
+print_latex_table(rows, columns; suffix = "\\scriptsize Standard errors in parentheses.")
 ```
 ![An image of the compiled LaTeX table](./assets/penguins4.png)
 
@@ -115,8 +111,7 @@ regs = [lm(@formula(body_mass_g ~ bill_length_mm + flipper_length_mm + sex), pen
         qreg(@formula(body_mass_g ~ bill_length_mm + flipper_length_mm), penguins, 0.5),
         reg(penguins, @formula(body_mass_g ~ bill_length_mm + flipper_length_mm + fe(species)&fe(sex))),
        ]
-tab = print_regression_table(String, regs)
-print(tab)
+print_regression_table(regs)
 ```
 ![An image of the compiled LaTeX table](./assets/penguins5.png)
 

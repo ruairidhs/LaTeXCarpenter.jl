@@ -98,6 +98,8 @@ function print_latex_table(file::AbstractString, rows, columns; kwargs...)
     return nothing
 end
 
+print_latex_table(rows, columns; kwargs...) = print_latex_table(stdout, rows, columns; kwargs...)
+
 ## Implementation:
 ## generate and expand the body matrix
 function generate_body(rows, columns, rowheader, transpose)

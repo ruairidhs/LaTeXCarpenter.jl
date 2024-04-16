@@ -160,3 +160,5 @@ function print_regression_table(io, regs;
     (; rows, columns, midrules) = get_regression_table_format(regs; labels=labels, coefs=coefs, stats=stats, fes=fes, colnames=colnames)
     print_latex_table(io, rows, columns; midrules=midrules, kwargs...)
 end
+
+print_regression_table(regs; kwargs...) = print_regression_table(stdout, regs; kwargs...)
