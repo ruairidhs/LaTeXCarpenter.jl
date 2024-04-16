@@ -1,1 +1,7 @@
 Manifest.toml
+.gitignore
+test/testdata/**
+dev/
+test/wrapper.*
+docs/build/
+.DS_Store

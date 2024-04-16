@@ -97,6 +97,14 @@ function add_stats_labels(labels)
     end
 end
 
+"""
+    get_regression_table_format(regs; reg_kwargs...)
+
+Makes the row and column specifications for a regression table but does not construct the final table.
+
+The resulting rows and columns can be passed to [`print_latex_table`](@ref).
+See [`print_regression_table`](@ref) for keyword arguments.
+"""
 function get_regression_table_format(regs; 
         labels = Dict(),
         coefs=get_all_coefnames(regs), 
@@ -125,6 +133,22 @@ function get_regression_table_format(regs;
     )
 end
 
+"""
+    print_regression_table([filepath::AbstractString | String | io::IO], regs::Vector{RegressionModel}; reg_kwargs..., table_kwargs...)
+
+Print a regression table based on with columns determined by `regs`.
+
+# Keyword arguments
+
+All keyword arguments for [`print_latex_table`](@ref) are also available.
+Additional keyword arguments for regression tables are:
+
+- `labels::Dict`: used to rename regression coefficients, fixed effects and statistics. For example, if "x1" is a regression coefficient, `"x1" => raw"\$x_{1}\$"` may be an element of `labels`. Fixed effects should be indexed by a `Symbol`, e.g., `:state => "State"`.
+- `coefs`: a vector of coefficient names to include in the table. Defaults to all coefficients included in any of `regs`. Can also be used to change the order of coefficients in the table.
+- `stats=[nobs, r2]`: a vector of statistics to include in the regression.
+- `fes`: a vector of fixed effects to include in the table. Defaults to all fixed effects included in any of `regs`.
+- `colnames=["(1)", "(2)", ...]`: a vector of column names.
+"""
 function print_regression_table(io, regs;
         labels = Dict(),
         coefs=get_all_coefnames(regs), 

@@ -4,18 +4,40 @@ using Format,
       StatsAPI,
       StatsModels
 
-export print_latex_table, print_regression_table, Column, Row
+export print_latex_table, print_regression_table, get_regression_table_format, Column, Row
 
-struct Column{D}
-    label::String # used to print
+"""
+    Column(label, data)
+
+Defines a table column.
+
+The label is used for the column title and the data in `(row, column)` is given by `column.data[row.key]`.
+"""
+struct Column{S <: AbstractString, D}
+    label::S # used to print
     data::D
 end
 
-struct Row{K, F}
+"""
+    Row(key, label, [formatter::Function|String])
+
+Defines a table row.
+
+The label is used for the row title.
+The key is used to index into column data, so that the data in `(row, column)` is given by `column.data[row.key]`.
+The formatter is an optional function which is applied to the data before printing.
+A `Format.jl` format string can also be directly passed as the formatter.
+
+# Multi-rows
+If the result of applying the formatter is a collection of strings, then the resulting table will feature a seperate row for each item in the collection.
+"""
+struct Row{K, S <: AbstractString, F <: Function}
     key::K # used to index into the columns
-    label::String
+    label::S
     formatter::F
 end
+Row(key, label) = Row(key, string(label), default_fmt)
+Row(key, label, fmt_string::String) = Row(key, label, x -> format(fmt_string, x))
 
 include("default_formatting.jl")
 include("regression_tables.jl")
@@ -42,13 +64,14 @@ Formatters are functions that transform the data into either a string or a colle
 - `title_align::String`: an alignment character for the column titles.
 - `multicol_spec::Vector{Tuple{Int, Int, String}}`: specify column groups with syntax `(start column, finish column, group title)`. The row titles are column 0.
 - `align_spec::String`: LaTeX tabular alignment, e.g., "lrrrr" for a table with left-aligned row titles and 4 right-aligned columns.
+- `suffix::[Vector{String}|String]`: Footnotes for the table. If a vector is passed, each element is printed on a newline.
 """
 function print_latex_table end
 
 function print_latex_table(::Type{String}, rows, columns;
         rowheader=nothing, transpose=false, midrules = [],
         title_align = "c", multicol_spec = nothing,
-        align_spec = nothing,
+        align_spec = nothing, suffix=nothing
     )
     body = generate_body(rows, columns, rowheader, transpose)
     if isnothing(align_spec)
@@ -56,9 +79,10 @@ function print_latex_table(::Type{String}, rows, columns;
     end
     midrules = expand_midrules(body, midrules)
     body = expand_body(body, title_align)
+    equalize_column_widths!(body) # align on '&'
     composed_body = compose_body(body, midrules, multicol_spec)
     header = generate_header(align_spec)
-    footer = generate_footer()
+    footer = generate_footer(suffix, size(body, 2))
     return compose_table_string(header, composed_body, footer)
 end
 
@@ -135,6 +159,14 @@ function expand_body(body, title_align)
     return res
 end
 
+function equalize_column_widths!(mat)
+    for col in eachslice(mat, dims=2)
+        len = maximum(textwidth, col)
+        col .= rpad.(col, len)
+    end
+    return mat
+end
+
 function expand_row(row)
     n_elements = maximum(length, row)
     mapreduce(vcat, 1:n_elements) do idx
@@ -206,10 +238,17 @@ function generate_header(alignspec)
            ]
 end
 
-function generate_footer()
-    return [raw"\bottomrule",
-            raw"\end{tabular}",
+make_suffix_row(s, ncols) = "\\multicolumn{$ncols}{l}{$s}"
+function generate_footer(::Nothing, ncols)
+    return [raw"\bottomrule";
+            raw"\end{tabular}"
            ]
 end
+
+function generate_footer(suffix, ncols)
+    return [raw"\bottomrule"; [make_suffix_row(s, ncols) for s in suffix] ;raw"\end{tabular}"]
+end
+
+generate_footer(suffix::AbstractString, ncols) = generate_footer([suffix], ncols)
 
 end#module
