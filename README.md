@@ -23,6 +23,8 @@ Each row (`type`) contains data of the same type and is formatted the same way, 
 | Body mass      | 3706g                    | 3733g     | 5092g  |
 | Islands        | Torgerson, Biscoe, Dream | Dream     | Biscoe |
 
+![An example table](./docs/src/assets/penguins3.png)
+
 ## Alternative packages
 
 There are several other useful packages for generating LaTeX tables from Julia objects.
