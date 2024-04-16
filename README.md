@@ -28,7 +28,7 @@ rows = [Row(:bill_length_mm, "Bill length", "{:.2f}mm"),
         Row(:body_mass_g, "Body mass", x -> format("{:.2f}kg", x / 1000)),
         Row(:island, "Islands", identity),
        ]
-print_latex_table(rows, columns)
+print_latex_table(rows, columns; midrules=[2])
 ```
 
 ## Alternative packages
