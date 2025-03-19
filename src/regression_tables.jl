@@ -50,9 +50,9 @@ function Base.getindex(rr::RegressionColumnData{T}, key::StatKey) where {T <: St
     end
 end
 
+# fixed effects
 get_fes(::RegressionModel) = Any[]
-
-Base.getindex(rr::RegressionColumnData, key::FEKey) = false
+Base.getindex(rr::RegressionColumnData, key::FEKey) = key.idx ∈ get_fes(rr.model)
 
 ##
 function apply_labels(labels, row)
